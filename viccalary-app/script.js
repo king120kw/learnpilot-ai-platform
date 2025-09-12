@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- State Management ---
     const userData = {
         name: '',
         age: 19,
@@ -23,8 +24,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- DOM Elements ---
     const screens = {
         welcome: document.getElementById('welcome-screen'),
+        signup: document.getElementById('signup-screen'),
+        login: document.getElementById('login-screen'),
         name: document.getElementById('name-screen'),
         age: document.getElementById('age-screen'),
         weight: document.getElementById('weight-screen'),
@@ -42,7 +46,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const buttons = {
         welcome: {
-            start: document.getElementById('welcome-start-btn'),
+            login: document.getElementById('welcome-login-btn'),
+            signup: document.getElementById('welcome-signup-btn'),
+        },
+        signup: {
+            back: document.getElementById('signup-back-btn'),
+            submit: document.getElementById('signup-submit-btn'),
+            switchToLogin: document.getElementById('switch-to-login-btn'),
+        },
+        login: {
+            back: document.getElementById('login-back-btn'),
+            submit: document.getElementById('login-submit-btn'),
+            switchToSignup: document.getElementById('switch-to-signup-btn'),
         },
         name: {
             back: document.getElementById('name-back-btn'),
@@ -99,6 +114,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- API Helper ---
+    async function apiCall(endpoint, method = 'GET', body = null) {
+        const options = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        };
+
+        const token = localStorage.getItem('token');
+        if (token) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+
+        try {
+            const response = await fetch(`http://127.0.0.1:5000${endpoint}`, options);
+            const data = await response.json();
+            if (!response.ok) {
+                // Use a generic error message or the one from the API
+                alert(data.error || 'An API error occurred.');
+                return null;
+            }
+            return data;
+        } catch (error) {
+            console.error('API call failed:', error);
+            alert('Could not connect to the server.');
+            return null;
+        }
+    }
+
+
+    // --- UI Update Functions ---
     function calculateBMR() {
         const weightKg = userData.weightUnit === 'lbs' ? userData.weight / 2.20462 : parseFloat(userData.weight);
         const heightCm = userData.heightUnit === 'ft' ? userData.height * 30.48 : parseFloat(userData.height);
@@ -160,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update Name
         const dashboardName = document.getElementById('dashboard-user-name');
         if (dashboardName) {
-            console.log('Updating dashboard with name:', userData.name);
             dashboardName.textContent = userData.name || 'User';
         }
 
@@ -223,15 +273,64 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Navigation Logic ---
-    if (buttons.welcome.start) {
-        buttons.welcome.start.addEventListener('click', () => showScreen('name'));
+    // --- Navigation & Event Listeners ---
+
+    // Welcome Screen
+    if (buttons.welcome.signup) {
+        buttons.welcome.signup.addEventListener('click', () => showScreen('signup'));
     }
+    if (buttons.welcome.login) {
+        buttons.welcome.login.addEventListener('click', () => showScreen('login'));
+    }
+
+    // Auth Screens
+    if (buttons.signup.back) {
+        buttons.signup.back.addEventListener('click', () => showScreen('welcome'));
+    }
+    if (buttons.login.back) {
+        buttons.login.back.addEventListener('click', () => showScreen('welcome'));
+    }
+    if (buttons.signup.switchToLogin) {
+        buttons.signup.switchToLogin.addEventListener('click', () => showScreen('login'));
+    }
+    if (buttons.login.switchToSignup) {
+        buttons.login.switchToSignup.addEventListener('click', () => showScreen('signup'));
+    }
+
+    // Signup Form Submission
+    if (buttons.signup.submit) {
+        buttons.signup.submit.addEventListener('click', async () => {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const data = await apiCall('/auth/signup', 'POST', { email, password });
+            if (data) {
+                alert('Signup successful! Please log in.');
+                showScreen('login');
+            }
+        });
+    }
+
+    // Login Form Submission
+    if (buttons.login.submit) {
+        buttons.login.submit.addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const data = await apiCall('/auth/login', 'POST', { email, password });
+            if (data && data.token) {
+                localStorage.setItem('token', data.token);
+                // For now, assume a new user always goes to onboarding
+                // A real app would check if the profile is complete
+                showScreen('name');
+            }
+        });
+    }
+
+    // Onboarding Navigation
     if (buttons.name.continue) {
         buttons.name.continue.addEventListener('click', () => showScreen('age'));
     }
     if (buttons.name.back) {
-        buttons.name.back.addEventListener('click', () => showScreen('welcome'));
+        buttons.name.back.addEventListener('click', () => showScreen('login')); // Or wherever appropriate
     }
     if (buttons.age.continue) {
         buttons.age.continue.addEventListener('click', () => showScreen('weight'));
@@ -239,17 +338,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (buttons.age.back) {
         buttons.age.back.addEventListener('click', () => showScreen('name'));
     }
-    if (buttons.age.skip) {
-        buttons.age.skip.addEventListener('click', () => showScreen('dashboard'));
-    }
     if (buttons.weight.continue) {
         buttons.weight.continue.addEventListener('click', () => showScreen('goal'));
     }
     if (buttons.weight.back) {
         buttons.weight.back.addEventListener('click', () => showScreen('age'));
-    }
-    if (buttons.weight.skip) {
-        buttons.weight.skip.addEventListener('click', () => showScreen('dashboard'));
     }
     if (buttons.goal.continue) {
         buttons.goal.continue.addEventListener('click', () => showScreen('gender'));
@@ -257,17 +350,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (buttons.goal.back) {
         buttons.goal.back.addEventListener('click', () => showScreen('weight'));
     }
-    if (buttons.goal.skip) {
-        buttons.goal.skip.addEventListener('click', () => showScreen('dashboard'));
-    }
     if (buttons.gender.continue) {
         buttons.gender.continue.addEventListener('click', () => showScreen('height'));
     }
     if (buttons.gender.back) {
         buttons.gender.back.addEventListener('click', () => showScreen('goal'));
-    }
-    if (buttons.gender.skip) {
-        buttons.gender.skip.addEventListener('click', () => showScreen('dashboard'));
     }
     if (buttons.height.continue) {
         buttons.height.continue.addEventListener('click', () => showScreen('activityLevel'));
@@ -275,17 +362,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (buttons.height.back) {
         buttons.height.back.addEventListener('click', () => showScreen('gender'));
     }
-    if (buttons.height.skip) {
-        buttons.height.skip.addEventListener('click', () => showScreen('dashboard'));
-    }
     if (buttons.activityLevel.continue) {
         buttons.activityLevel.continue.addEventListener('click', () => showScreen('dietaryPreferences'));
     }
     if (buttons.activityLevel.back) {
         buttons.activityLevel.back.addEventListener('click', () => showScreen('height'));
-    }
-    if (buttons.activityLevel.skip) {
-        buttons.activityLevel.skip.addEventListener('click', () => showScreen('dashboard'));
     }
     if (buttons.dietaryPreferences.continue) {
         buttons.dietaryPreferences.continue.addEventListener('click', () => showScreen('lifestyleHabits'));
@@ -293,17 +374,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (buttons.dietaryPreferences.back) {
         buttons.dietaryPreferences.back.addEventListener('click', () => showScreen('activityLevel'));
     }
-    if (buttons.dietaryPreferences.skip) {
-        buttons.dietaryPreferences.skip.addEventListener('click', () => showScreen('dashboard'));
-    }
     if (buttons.lifestyleHabits.continue) {
         buttons.lifestyleHabits.continue.addEventListener('click', () => showScreen('budget'));
     }
     if (buttons.lifestyleHabits.back) {
         buttons.lifestyleHabits.back.addEventListener('click', () => showScreen('dietaryPreferences'));
-    }
-    if (buttons.lifestyleHabits.skip) {
-        buttons.lifestyleHabits.skip.addEventListener('click', () => showScreen('dashboard'));
     }
     if (buttons.budget.continue) {
         buttons.budget.continue.addEventListener('click', () => showScreen('finalOnboarding'));
@@ -311,24 +386,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (buttons.budget.back) {
         buttons.budget.back.addEventListener('click', () => showScreen('lifestyleHabits'));
     }
-    if (buttons.budget.skip) {
-        buttons.budget.skip.addEventListener('click', () => showScreen('dashboard'));
-    }
     if (buttons.finalOnboarding.finish) {
-        buttons.finalOnboarding.finish.addEventListener('click', () => showScreen('dashboard'));
+        buttons.finalOnboarding.finish.addEventListener('click', async () => {
+            console.log("Saving final user data:", userData);
+            const data = await apiCall('/user/profile', 'POST', userData);
+            if (data) {
+                // After saving, navigate to dashboard
+                showScreen('dashboard');
+            }
+        });
     }
     if (buttons.finalOnboarding.back) {
         buttons.finalOnboarding.back.addEventListener('click', () => showScreen('budget'));
     }
 
-
     // --- Onboarding Interactivity ---
-
+    // (This part is long and unchanged, so omitting for brevity, but it's the same as before)
     // Name Input
     const nameInput = document.getElementById('name-input');
     if (nameInput) {
         nameInput.addEventListener('input', (e) => {
-            console.log('Name input captured:', e.target.value);
             userData.name = e.target.value;
         });
     }
@@ -360,9 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateAgeOptions();
         }
     });
-
     updateAgeOptions();
-
 
     // Weight Selection
     const weightInput = document.getElementById('weight-input');
@@ -387,9 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateWeightDisplay();
         });
     });
-
     updateWeightDisplay();
-
 
     // Goal Selection
     const goalOptions = screens.goal.querySelectorAll('.goal-option');
@@ -436,7 +509,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateHeightDisplay();
         });
     });
-
     updateHeightDisplay();
 
     // Activity Level Selection

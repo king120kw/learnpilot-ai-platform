@@ -35,7 +35,68 @@
                     </div>
                     <h1 class="welcome-title">Track Your Nutrition<br>Transform Your Health</h1>
                     <p class="welcome-subtitle">AI-powered meal analysis with personalized guidance and budget tracking</p>
-                    <button id="welcome-start-btn" class="primary-button">Get Started</button>
+                    <div class="welcome-buttons">
+                        <button id="welcome-login-btn" class="primary-button">Login</button>
+                        <button id="welcome-signup-btn" class="secondary-button">Sign Up</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sign Up Screen -->
+        <div id="signup-screen" class="phone-frame hidden">
+            <div class="screen-label">Sign Up</div>
+            <div class="screen">
+                <div class="status-bar">
+                    <div class="time">9:41</div>
+                    <div class="indicators">
+                        <div class="signal"></div>
+                        <div class="wifi"></div>
+                        <div class="battery"></div>
+                    </div>
+                </div>
+                <div class="content onboarding-screen">
+                    <div class="progress-header">
+                        <button id="signup-back-btn" class="back-button">←</button>
+                    </div>
+                    <h2 class="question-title">Create Your Account</h2>
+                    <div class="auth-form">
+                        <input type="email" id="signup-email" placeholder="Email Address" class="auth-input">
+                        <input type="password" id="signup-password" placeholder="Password" class="auth-input">
+                        <button id="signup-submit-btn" class="primary-button" style="width: 100%;">Sign Up</button>
+                    </div>
+                    <div class="auth-switch">
+                        <p>Already have an account? <button id="switch-to-login-btn" class="link-button">Login</button></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Screen -->
+        <div id="login-screen" class="phone-frame hidden">
+            <div class="screen-label">Login</div>
+            <div class="screen">
+                <div class="status-bar">
+                    <div class="time">9:41</div>
+                    <div class="indicators">
+                        <div class="signal"></div>
+                        <div class="wifi"></div>
+                        <div class="battery"></div>
+                    </div>
+                </div>
+                <div class="content onboarding-screen">
+                    <div class="progress-header">
+                        <button id="login-back-btn" class="back-button">←</button>
+                    </div>
+                    <h2 class="question-title">Welcome Back!</h2>
+                    <div class="auth-form">
+                        <input type="email" id="login-email" placeholder="Email Address" class="auth-input">
+                        <input type="password" id="login-password" placeholder="Password" class="auth-input">
+                        <button id="login-submit-btn" class="primary-button" style="width: 100%;">Login</button>
+                    </div>
+                    <div class="auth-switch">
+                        <p>Don't have an account? <button id="switch-to-signup-btn" class="link-button">Sign Up</button></p>
+                    </div>
                 </div>
             </div>
         </div>
