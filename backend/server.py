@@ -22,6 +22,26 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+# --- Token Decorator ---
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split(" ")[1]
+
+        if not token:
+            return jsonify({'error': 'Token is missing!'}), 401
+
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+            current_user_id = data['user_id']
+        except:
+            return jsonify({'error': 'Token is invalid!'}), 401
+
+        return f(current_user_id, *args, **kwargs)
+    return decorated
+
 # --- Routes ---
 
 @app.route('/')
@@ -40,24 +60,18 @@ def signup():
     conn = get_db_connection()
     c = conn.cursor()
 
-    # Check if user already exists
     c.execute('SELECT * FROM users WHERE email = ?', (email,))
     user = c.fetchone()
     if user:
         conn.close()
         return jsonify({'error': 'User with this email already exists'}), 409
 
-    # Hash the password
     password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
-    # Insert new user
     try:
         c.execute('INSERT INTO users (email, password_hash) VALUES (?, ?)', (email, password_hash))
         user_id = c.lastrowid
-
-        # Create a corresponding profile
-        c.execute('INSERT INTO profiles (user_id, name) VALUES (?, ?)', (user_id, '')) # Start with an empty name
-
+        c.execute('INSERT INTO profiles (user_id, name) VALUES (?, ?)', (user_id, ''))
         conn.commit()
     except sqlite3.IntegrityError:
         conn.close()
@@ -86,7 +100,6 @@ def login():
     if not user or not bcrypt.check_password_hash(user['password_hash'], password):
         return jsonify({'error': 'Invalid credentials'}), 401
 
-    # Create JWT token
     token = jwt.encode({
         'user_id': user['id'],
         'exp': datetime.utcnow() + timedelta(hours=24)
@@ -96,28 +109,7 @@ def login():
 
 @app.route('/auth/logout', methods=['POST'])
 def logout():
-    # In a stateless JWT system, the client is responsible for deleting the token.
-    # The backend can provide a simple confirmation.
     return jsonify({'message': 'Logout successful'}), 200
-
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = None
-        if 'Authorization' in request.headers:
-            token = request.headers['Authorization'].split(" ")[1]
-
-        if not token:
-            return jsonify({'error': 'Token is missing!'}), 401
-
-        try:
-            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            current_user_id = data['user_id']
-        except:
-            return jsonify({'error': 'Token is invalid!'}), 401
-
-        return f(current_user_id, *args, **kwargs)
-    return decorated
 
 @app.route('/user/profile', methods=['GET', 'POST'])
 @token_required
@@ -127,7 +119,6 @@ def user_profile(current_user_id):
 
     if request.method == 'POST':
         profile_data = request.get_json()
-        # Ensure dietary_preferences is a string
         if isinstance(profile_data.get('dietaryPreferences'), list):
             profile_data['dietaryPreferences'] = ",".join(profile_data['dietaryPreferences'])
 
@@ -157,7 +148,9 @@ def user_profile(current_user_id):
     if not profile:
         return jsonify({'error': 'Profile not found'}), 404
 
-    return jsonify(dict(profile))
+    # Convert row object to dictionary before returning
+    return jsonify({key: profile[key] for key in profile.keys()})
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

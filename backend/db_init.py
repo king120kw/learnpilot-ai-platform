@@ -1,5 +1,4 @@
 import sqlite3
-
 import os
 
 # Define the path for the database file relative to this script
